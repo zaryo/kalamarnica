@@ -4,6 +4,7 @@ use clap::Parser;
 
 use crate::cmd::handler::Handler;
 use crate::storage::Storage;
+use crate::vcs::Vcs;
 
 #[derive(Parser)]
 pub struct SetToken {
@@ -11,17 +12,21 @@ pub struct SetToken {
     /// Context name
     name: String,
 
-    /// GitHub token
+    /// Personal access token
     token: String,
+
+    #[arg(long)]
+    /// Versioning code system used. Eg. Github, Gitlab
+    vcs: Vcs,
 }
 
 impl SetToken {
     pub fn execute(&self, storage: &Storage) -> Result<()> {
-        if !storage.context_exists(&self.name) {
+        if !storage.context_exists(&self.name, self.vcs)? {
             bail!("context '{}' does not exist", self.name);
         }
 
-        storage.write_token(&self.name, &self.token)?;
+        storage.write_token(&self.name, self.vcs, &self.token)?;
         log::info!("Stored token for context '{}'", self.name);
 
         Ok(())
@@ -38,21 +43,12 @@ impl Handler for SetToken {
 mod tests {
     use super::SetToken;
     use crate::cmd::handler::Handler;
-    use crate::context::Context;
     use crate::storage::Storage;
-    use crate::transport::Transport;
-
-    fn sample_context() -> Context {
-        Context {
-            hostname: "github.com".to_owned(),
-            user: "testuser".to_owned(),
-            transport: Transport::Ssh,
-            ssh_host_alias: None,
-        }
-    }
+    use crate::test_utils::sample_context;
+    use crate::vcs::Vcs;
 
     #[test]
-    fn set_token_for_nonexistent_context_fails() -> Result<(), anyhow::Error> {
+    fn test_set_token_for_nonexistent_context_fails() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
 
@@ -60,6 +56,7 @@ mod tests {
         let handler = SetToken {
             name: context_name.to_owned(),
             token: "ghp_test123".to_owned(),
+            vcs: Vcs::Github,
         };
 
         let error = handler.handle(&storage).unwrap_err();
@@ -72,19 +69,20 @@ mod tests {
     }
 
     #[test]
-    fn set_token_for_existing_context_succeeds() -> Result<(), anyhow::Error> {
+    fn test_set_token_for_existing_context_succeeds() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
-        storage.write_context("work", &sample_context())?;
+        storage.write_context("work", Vcs::Github, &sample_context())?;
 
         let handler = SetToken {
             name: "work".to_owned(),
             token: "ghp_secret123".to_owned(),
+            vcs: Vcs::Github,
         };
 
         handler.handle(&storage)?;
 
-        let stored_token = storage.read_token("work")?;
+        let stored_token = storage.read_token("work", Vcs::Github)?;
         assert_eq!(stored_token.as_deref(), Some("ghp_secret123"));
 
         Ok(())

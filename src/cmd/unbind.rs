@@ -17,7 +17,7 @@ impl Unbind {
         let repo_root_path =
             repo_root::repo_root()?.ok_or_else(|| anyhow!("not inside a git repository"))?;
 
-        let binding_path = Path::new(&repo_root_path).join(".ghcontext");
+        let binding_path = Path::new(&repo_root_path).join(".vcs_context");
         match binding_path.exists() {
             true => {
                 fs::remove_file(&binding_path)?;
@@ -44,7 +44,7 @@ mod tests {
     use crate::test_utils::CWD_MUTEX;
 
     #[test]
-    fn unbind_outside_git_repo_fails() -> Result<(), anyhow::Error> {
+    fn test_unbind_outside_git_repo_fails() -> Result<(), anyhow::Error> {
         let _guard = CWD_MUTEX
             .lock()
             .map_err(|poison_error| anyhow::anyhow!("{poison_error}"))?;
@@ -65,7 +65,7 @@ mod tests {
     }
 
     #[test]
-    fn unbind_without_ghcontext_file_succeeds() -> Result<(), anyhow::Error> {
+    fn test_unbind_without_vcs_context_file_succeeds() -> Result<(), anyhow::Error> {
         let _guard = CWD_MUTEX
             .lock()
             .map_err(|poison_error| anyhow::anyhow!("{poison_error}"))?;
@@ -89,7 +89,7 @@ mod tests {
     }
 
     #[test]
-    fn unbind_with_ghcontext_file_removes_it() -> Result<(), anyhow::Error> {
+    fn test_unbind_with_vcs_context_file_removes_it() -> Result<(), anyhow::Error> {
         let _guard = CWD_MUTEX
             .lock()
             .map_err(|poison_error| anyhow::anyhow!("{poison_error}"))?;
@@ -101,7 +101,8 @@ mod tests {
         let repo_dir = tmp.path().join("repo");
         std::fs::create_dir_all(&repo_dir)?;
         git2::Repository::init(&repo_dir)?;
-        std::fs::write(repo_dir.join(".ghcontext"), "work")?;
+        let binding_content = "[github]\nname = \"work\"";
+        std::fs::write(repo_dir.join(".vcs_context"), binding_content)?;
         std::env::set_current_dir(&repo_dir)?;
 
         let handler = Unbind;
@@ -110,7 +111,7 @@ mod tests {
         std::env::set_current_dir(&original_cwd)?;
         result?;
 
-        assert!(!repo_dir.join(".ghcontext").exists());
+        assert!(!repo_dir.join(".vcs_context").exists());
 
         Ok(())
     }

@@ -1,44 +1,44 @@
-use std::fmt::Write as _;
-
 use anyhow::Result;
 use clap::Parser;
 
 use crate::cmd::handler::Handler;
+use crate::context::Context;
 use crate::storage::Storage;
+use crate::vcs::Vcs;
 
 #[derive(Parser)]
 pub struct List;
 
 impl List {
     pub fn execute(&self, storage: &Storage) -> Result<()> {
-        let context_names = storage.list_context_names()?;
-        let active_context_name = storage.get_active()?;
+        let contexts = storage.list_contexts()?;
+        let active = storage.get_active()?;
 
-        if context_names.is_empty() {
+        if contexts.is_empty() {
             log::info!(
-                "No contexts found. Create one with: kalamarnica create --name <name> --hostname <host> --user <user>"
+                "No contexts found. Create one with: kalamarnica create --name <name> --vcs <vcs> --hostname <host> --user <user>"
             );
 
             return Ok(());
         }
 
-        for context_name in &context_names {
-            let context = storage.read_context(context_name)?;
-            let active_marker = match active_context_name.as_deref() == Some(context_name.as_str())
-            {
-                true => " *",
-                false => "",
-            };
+        for (vcs_str, names) in &contexts {
+            let vcs: Vcs = vcs_str.parse()?;
 
-            let mut context_summary = format!(
-                "{}@{}, {}",
-                context.user, context.hostname, context.transport
-            );
-            if let Some(ssh_host_alias) = &context.ssh_host_alias {
-                write!(context_summary, ", ssh_host={ssh_host_alias}")?;
+            for name in names {
+                let context = storage.read_context(name, vcs)?;
+                let active_marker = match active
+                    .as_ref()
+                    .is_some_and(|active_ctx| active_ctx.name == *name && active_ctx.vcs == vcs)
+                {
+                    true => " *",
+                    false => "",
+                };
+
+                let context_line = format_context_line(name, active_marker, &context, vcs_str);
+
+                log::info!("{context_line}");
             }
-
-            log::info!("{context_name}{active_marker} ({context_summary})");
         }
 
         Ok(())
@@ -51,25 +51,31 @@ impl Handler for List {
     }
 }
 
+fn format_context_line(
+    name: &str,
+    active_marker: &str,
+    context: &Context,
+    vcs_str: &str,
+) -> String {
+    format!(
+        "{name}{active_marker} ({}@{}, {}, {vcs_str})",
+        context.user, context.hostname, context.transport
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::List;
+    use super::format_context_line;
+    use crate::apply_context::ApplyContext;
     use crate::cmd::handler::Handler;
-    use crate::context::Context;
     use crate::storage::Storage;
-    use crate::transport::Transport;
-
-    fn sample_context() -> Context {
-        Context {
-            hostname: "github.com".to_owned(),
-            user: "testuser".to_owned(),
-            transport: Transport::Ssh,
-            ssh_host_alias: None,
-        }
-    }
+    use crate::test_utils::sample_context;
+    use crate::test_utils::sample_gitlab_context;
+    use crate::vcs::Vcs;
 
     #[test]
-    fn list_empty_contexts_succeeds() -> Result<(), anyhow::Error> {
+    fn test_list_empty_contexts_succeeds() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
         let handler = List;
@@ -80,10 +86,10 @@ mod tests {
     }
 
     #[test]
-    fn list_single_context_succeeds() -> Result<(), anyhow::Error> {
+    fn test_list_single_context_succeeds() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
-        storage.write_context("work", &sample_context())?;
+        storage.write_context("work", Vcs::Github, &sample_context())?;
 
         let handler = List;
         handler.handle(&storage)?;
@@ -92,11 +98,11 @@ mod tests {
     }
 
     #[test]
-    fn list_multiple_contexts_succeeds() -> Result<(), anyhow::Error> {
+    fn test_list_multiple_contexts_succeeds() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
-        storage.write_context("work", &sample_context())?;
-        storage.write_context("personal", &sample_context())?;
+        storage.write_context("work", Vcs::Github, &sample_context())?;
+        storage.write_context("personal", Vcs::Gitlab, &sample_gitlab_context())?;
 
         let handler = List;
         handler.handle(&storage)?;
@@ -105,34 +111,47 @@ mod tests {
     }
 
     #[test]
-    fn list_with_active_context_succeeds() -> Result<(), anyhow::Error> {
+    fn test_list_with_active_context_succeeds() -> Result<(), anyhow::Error> {
         let tmp = tempfile::tempdir()?;
         let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
-        storage.write_context("work", &sample_context())?;
-        storage.write_context("personal", &sample_context())?;
-        storage.set_active("work")?;
-
-        let handler = List;
-        handler.handle(&storage)?;
-
-        Ok(())
-    }
-
-    #[test]
-    fn list_context_with_ssh_alias_succeeds() -> Result<(), anyhow::Error> {
-        let tmp = tempfile::tempdir()?;
-        let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
-        let context = Context {
-            hostname: "github.com".to_owned(),
-            user: "testuser".to_owned(),
-            transport: Transport::Ssh,
-            ssh_host_alias: Some("gh-work".to_owned()),
+        storage.write_context("work", Vcs::Github, &sample_context())?;
+        storage.write_context("personal", Vcs::Github, &sample_context())?;
+        let active = ApplyContext {
+            name: "work".to_owned(),
+            vcs: Vcs::Github,
         };
-        storage.write_context("work", &context)?;
+        storage.set_active(&active)?;
 
         let handler = List;
         handler.handle(&storage)?;
 
         Ok(())
+    }
+
+    #[test]
+    fn test_list_same_name_across_vcs_succeeds() -> Result<(), anyhow::Error> {
+        let tmp = tempfile::tempdir()?;
+        let storage = Storage::with_base_dir(tmp.path().to_path_buf())?;
+        storage.write_context("work", Vcs::Github, &sample_context())?;
+        storage.write_context("work", Vcs::Gitlab, &sample_gitlab_context())?;
+
+        let handler = List;
+        handler.handle(&storage)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_format_context_line_active() {
+        let context = sample_context();
+        let line = format_context_line("work", " *", &context, "github");
+        assert_eq!(line, "work * (testuser@github.com, ssh, github)");
+    }
+
+    #[test]
+    fn test_format_context_line_inactive() {
+        let context = sample_context();
+        let line = format_context_line("work", "", &context, "github");
+        assert_eq!(line, "work (testuser@github.com, ssh, github)");
     }
 }

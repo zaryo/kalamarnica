@@ -20,7 +20,7 @@ mod tests {
     use crate::test_utils::CWD_MUTEX;
 
     #[test]
-    fn returns_some_inside_git_repo() -> Result<(), anyhow::Error> {
+    fn test_returns_some_inside_git_repo() -> Result<(), anyhow::Error> {
         let _guard = CWD_MUTEX
             .lock()
             .map_err(|poison_error| anyhow::anyhow!("{poison_error}"))?;
@@ -41,7 +41,7 @@ mod tests {
     }
 
     #[test]
-    fn returns_none_for_bare_repo() -> Result<(), anyhow::Error> {
+    fn test_returns_none_for_bare_repo() -> Result<(), anyhow::Error> {
         let _guard = CWD_MUTEX
             .lock()
             .map_err(|poison_error| anyhow::anyhow!("{poison_error}"))?;

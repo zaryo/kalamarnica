@@ -22,7 +22,7 @@ use kalamarnica::storage::Storage;
 
 #[derive(Parser)]
 #[command(arg_required_else_help(true), version, about, long_about = None)]
-/// GitHub CLI context manager — manages multiple GitHub accounts and tokens
+/// VCS context manager — manages multiple accounts and tokens across GitHub and GitLab
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -30,29 +30,31 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// List all saved contexts
-    List(List),
-    /// Show the active context
-    Current(Current),
-    /// Create a new context
-    Create(Create),
-    /// Switch to a context
-    Switch(Switch),
-    /// Store a per-context GitHub token
-    SetToken(SetToken),
-    /// Delete a context
-    Delete(Delete),
-    /// Bind a repository to a context
-    Bind(Bind),
-    /// Remove repository context binding
-    Unbind(Unbind),
     /// Apply the repository-bound context
     Apply(Apply),
     /// Show authentication status for all contexts
     AuthStatus(AuthStatus),
+    /// Bind a repository to a context
+    Bind(Bind),
+    /// Create a new context
+    Create(Create),
+    /// Show the active context
+    Current(Current),
+    /// Delete a context
+    Delete(Delete),
+    /// List all saved contexts
+    List(List),
+    /// Store a per-context token
+    SetToken(SetToken),
+    /// Switch to a context
+    Switch(Switch),
+    /// Remove repository context binding
+    Unbind(Unbind),
 }
 
 fn main() -> Result<()> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     Builder::new()
         .filter_level(LevelFilter::Info)
         .format(|buffer, record| writeln!(buffer, "{}", record.args()))

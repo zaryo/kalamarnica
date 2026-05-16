@@ -1,6 +1,6 @@
 # kalamarnica
 
-Simple and opinionated CLI tool which changes github contexts - Accounts and per-account tokens (permissions).
+Simple and opinionated CLI tool which changes github contexts - Accounts and per-account tokens (permissions). It currently supports Github and Gitlab.
 
 ## Installation
 
@@ -32,20 +32,23 @@ cd kalamarnica
 cargo build --release
 ```
 
+
 ## Basic usage
 
 ```bash
 # Create context using current session information
-kalamarnica create --name personal --from-current 
+kalamarnica create --name personal --vcs github --from-current
+
 
 # Create context providing specific information
-kalamarnica create --name work --hostname github.com --user myuser --transport https
+kalamarnica create --name work --vcs github --hostname github.com --user myuser --transport https
 
 # Switch context
-kalamarnica switch personal
+kalamarnica switch personal --vcs github
 
 # Display detailed information about all contexts
 kalamarnica auth-status
+
 ```
 
 ## Commands reference
@@ -60,43 +63,43 @@ Show the active context and any repository-bound context.
 
 ### `create`
 
-Create a new context.
+Creates a new context.
 
 | Flag | Description |
 |---|---|
 | `--name` | Name for the new context |
-| `--from-current` | Detect hostname and user from the current `gh` session |
-| `--hostname` | GitHub hostname (e.g., `github.com`) |
-| `--user` | GitHub username |
+| `--vcs` | Versioning code system platform: `github` or `gitlab` |
+| `--from-current` | Detect hostname and user from the current VCS session |
+| `--hostname` | VCS hostname (e.g., `github.com`) |
+| `--user` | VCS username |
 | `--transport` | Git transport protocol: `ssh` (default) or `https` |
-| `--ssh-host` | SSH config host alias |
 
 Either `--from-current` or both `--hostname` and `--user` are required.
 
-### `switch <name>`
+### `switch <name> --vcs <vcs>`
 
-Switch to a context. Applies the stored token and verifies authentication.
+Switches to a context. Applies the stored token and verifies authentication.
 
-### `set-token --name <name> <token>`
+### `set-token --name <name> --vcs <vcs> <token>`
 
-Store a per-context GitHub token.
+Stores a per-context token.
 
-### `delete <name>`
+### `delete <name> --vcs <vcs>`
 
-Delete a context and its stored token.
+Deletes a context and its stored token.
 
-### `bind <name>`
+### `bind <name> --vcs <vcs>`
 
-Bind the current repository to a context. Creates a `.ghcontext` file in the repository root.
+Binds the current repository to a context. Creates a `.vcs_context` file in the repository root.
 
 ### `unbind`
 
-Remove the repository context binding.
+Removes the repository context binding.
 
 ### `apply`
 
-Apply the repository-bound context (switch to the context specified in `.ghcontext`).
+Applies the repository-bound context (switch to the context specified in `.vcs_context`).
 
 ### `auth-status`
 
-Show authentication status for all contexts, including host, user, transport, token, and auth verification.
+Shows authentication status for all contexts, including host, user, transport, token, and auth verification by versioning code system.

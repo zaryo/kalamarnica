@@ -31,6 +31,7 @@ Be proactive and fix any preexisting issues you encounter.
 - Always use explicit lifetime variable names (do not use `'a` and such, use descriptive names like `'message` or similar)
 - Always use explicit generic parameter names (never use single letter names like `T` for generics, prefix all of them with `T`, however). For example, use `TMessage` instead of `T`, etc.
 - Always use descriptive and explicit variable names, even in anonymous functions. Never use single-letter variable names.
+- Always use bigger descriptive names like `backend_response_message` instead of smaller names like `message`, even though the variable name can get very big. 
 - Instead of writing comments that explain what the code does, make the code self-documenting.
 - Do not use `pub(crate)` in Rust; in case of doubt, just make things public.
 - Add an empty line before return statements that end the function or a method.

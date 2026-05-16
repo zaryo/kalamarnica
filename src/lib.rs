@@ -1,14 +1,14 @@
+pub mod apply_context;
 pub mod cmd;
 pub mod context;
-pub mod gh_cli;
+pub mod ensure_host_entry;
+pub mod ensure_users_map;
+pub mod gh_client;
+pub mod gl_client;
 pub mod repo_root;
 pub mod storage;
+pub mod test_utils;
 pub mod transport;
-
-#[cfg(test)]
-pub mod test_utils {
-    use std::sync::LazyLock;
-    use std::sync::Mutex;
-
-    pub static CWD_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-}
+pub mod utils;
+pub mod vcs;
+pub mod vcs_client;

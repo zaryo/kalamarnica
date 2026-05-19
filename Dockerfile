@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-RUN git clone https://github.com/Propfend/kalamarnica.git .
+RUN git clone https://github.com/zaryo/kalamarnica.git .
 
 RUN cargo build
 

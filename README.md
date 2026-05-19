@@ -4,7 +4,7 @@ Simple and opinionated CLI tool which changes github contexts - Accounts and per
 
 ## Installation
 
-You can install the latest pre-built binary from [releases](https://github.com/Propfend/kalamarnica/releases).
+You can install the latest pre-built binary from [releases](https://github.com/zaryo/kalamarnica/releases).
 
 Build using Docker:
 
@@ -27,7 +27,7 @@ cargo install kalamarnica
 Build from source repository:
 
 ```bash
-git clone https://github.com/Propfend/kalamarnica.git
+git clone https://github.com/zaryo/kalamarnica.git
 cd kalamarnica
 cargo build --release
 ```

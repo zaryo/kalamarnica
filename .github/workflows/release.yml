@@ -34,11 +34,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: release-version
-        uses: intentee/release-action/release-tag-to-version@8125f727e97f72bfef24299d7c6d3217af1453bc
-        with:
-          release-tag: "${{ github.ref_name }}"
-
       - name: rename the binary
         run: mv ./target/release/kalamarnica ./${{ matrix.artifact_name }}
         shell: bash
@@ -48,10 +43,10 @@ jobs:
         with:
           subject-path: ./${{ matrix.artifact_name }}
 
-      - uses: intentee/release-action/assert-version@8125f727e97f72bfef24299d7c6d3217af1453bc
+      - uses: zaryo/release-action/match-version@b58fb98ef2d7d01f9150011ef2fe28b6076c21af
         with:
-          filename: "./${{ matrix.artifact_name }}"
-          expected-version: "${{ steps.release-version.outputs.version }}"
+          source: binary
+          filename: ./${{ matrix.artifact_name }}
 
       - name: upload artifact
         uses: actions/upload-artifact@v4
@@ -88,4 +83,3 @@ jobs:
           body: ${{ steps.release-version.outputs.description }}
           prerelease: ${{ steps.release-version.outputs.type == 'PRE_RELEASE' }}
           tag_name: ${{ github.ref }}
-

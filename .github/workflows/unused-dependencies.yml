@@ -1,0 +1,26 @@
+name: unused-dependencies
+
+on:
+  pull_request:
+    branches:
+      - "**"
+    types:
+      - edited
+      - opened
+      - ready_for_review
+      - review_requested
+      - synchronize
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  detect-unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Machete
+        uses: bnjbvr/cargo-machete@main
